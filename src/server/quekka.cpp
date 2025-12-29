@@ -52,22 +52,42 @@ int main(int argc, char *argv[]) {
 
     epoll_event_callback_fn callback = callback_fn;
 
-    // @todo 이 함수가 잘못 된 것 같음. 이벤트가 들어오면 callback 함수가 실행되는데, callback 함수 정상 처리 후, 이후 처리는?
-    epoll_handler_wait(gHandler, -1, callback, NULL);
-
+    int ret = 0;
+    while (1) {
+        ret = epoll_handler_wait(gHandler, -1, callback, NULL);
+        if (ret == -1)
+            break;
+    }
+    log_error("epoll_handler_wait error[%d]), system bug", ret);
     return 0;
 }
 
 static void callback_fn(int fd, uint32_t events, void *user_data) {
     log_info("FD [%d]에 이벤트가 발생 하였습니다. events[%d]", fd, events);
 
-    // 연결 요청이라면,
+    // 연결 요청이라면, accept 처리하여, 생성된 fd를 다시, epoll add 한다
     if (gServerFd == fd) {
         int accepted_fd = tcp_socket_accept(gServerFd, NULL);
 
         epoll_handler_add(gHandler, accepted_fd, EPOLLIN);
     } else {
-        log_info("[%s]", user_data);
+        // 데이터 수신처리영역.
+        char tmpBuffer[1024];
+        memset(tmpBuffer, 0, sizeof(tmpBuffer));
+        int ret = recv(fd, tmpBuffer, sizeof(tmpBuffer) - 1, MSG_DONTWAIT);
+        if (ret == 0) {
+            // 상대측에서 연결을 종료했다면,
+            log_info("failed to connect[%d]", ret);
+            close( fd );
+        }
+        else if (ret < 0) {
+            // 상대측 또는 우리가 예상치 못한 소켓 에러 발생시.
+            log_error("erorr[%d]", ret);
+        }
+        else {
+            // 데이터 정상 수신
+            log_info("user_data[%s]", tmpBuffer);
+        }
     }
 };
 
