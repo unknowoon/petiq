@@ -1,83 +1,179 @@
-⏺ CLion Docker Toolchain 설정 가이드
+# CLion Docker Toolchain 설정 가이드
 
-1. 사전 준비
+## 1. 사전 준비
 
-Docker 이미지에 개발 도구가 설치된 이미지가 필요합니다. 현재 Dockerfile은 멀티스테이지 빌드라서 최종 이미지에 CMake가 없습니다.
+### 개발용 Docker 이미지 빌드
 
-개발용 Dockerfile 생성 (Dockerfile.dev):
-
-FROM rockylinux:9
-
-# 개발 도구 설치
-RUN dnf -y update && \
-dnf -y install gcc gcc-c++ cmake make git gdb && \
-dnf clean all
-
-WORKDIR /app
-
-이미지 빌드:
+```bash
 docker build -f Dockerfile.dev -t quekka-dev:latest .
+```
 
-  ---
-2. CLion 설정 단계
+---
 
-Step 1: Docker 연결 확인
+## 2. CLion 설정
 
-1. Settings/Preferences → Build, Execution, Deployment → Docker
-2. + 클릭하여 Docker 추가
-3. Docker for Mac/Windows 또는 Unix socket 선택
-4. Connection successful 확인
+### Step 1: Docker 연결
 
-Step 2: Toolchain 추가
+1. `Settings` → `Build, Execution, Deployment` → `Docker`
+2. `+` 클릭하여 Docker 추가
+3. `Docker for Mac(Windows)` 선택
+4. `Connection successful` 확인
 
-1. Settings/Preferences → Build, Execution, Deployment → Toolchains
-2. + 클릭 → Docker 선택
+### Step 2: Toolchain 추가
+
+1. `Settings` → `Build, Execution, Deployment` → `Toolchains`
+2. `+` 클릭 → `Docker` 선택
 3. 설정:
-   - Name: Docker-Rocky9 (원하는 이름)
+   - Name: `Docker-Linux`
    - Docker: 연결된 Docker 선택
-   - Image: quekka-dev:latest ← 개발용 이미지 선택
-   - CMake: /usr/bin/cmake (자동 감지 또는 직접 입력)
-   - C Compiler: /usr/bin/gcc
-   - C++ Compiler: /usr/bin/g++
+   - Image: `quekka-dev:latest`
+   - CMake, C/C++ Compiler, Debugger 자동 감지 확인
 
-┌─────────────────────────────────────────────────┐
-│ Toolchains                                      │
-├─────────────────────────────────────────────────┤
-│ Name:        [Docker-Rocky9            ]        │
-│ Docker:      [Docker (connected)       ] ▼      │
-│ Image:       [quekka-dev:latest        ] ▼      │
-│ Container Settings: [...]                       │
-│                                                 │
-│ CMake:       /usr/bin/cmake         ✓ Found    │
-│ C Compiler:  /usr/bin/gcc           ✓ Found    │
-│ C++ Compiler:/usr/bin/g++           ✓ Found    │
-│ Debugger:    /usr/bin/gdb           ✓ Found    │
-└─────────────────────────────────────────────────┘
+### Step 3: CMake Profile 설정
 
-Step 3: CMake Profile 설정
-
-1. Settings/Preferences → Build, Execution, Deployment → CMake
-2. + 클릭하여 새 Profile 추가
+1. `Settings` → `Build, Execution, Deployment` → `CMake`
+2. `+` 클릭하여 새 Profile 추가
 3. 설정:
-   - Name: Debug-Docker
-   - Build type: Debug
-   - Toolchain: Docker-Rocky9 선택
+   - Name: `Debug-Docker-Linux`
+   - Build type: `Debug`
+   - Toolchain: `Docker-Linux` 선택
 
-  ---
-3. 흔한 에러와 해결
+### Step 4: 포트포워딩 설정 (중요)
 
-| 에러                 | 원인             | 해결                           |
-  |--------------------|----------------|------------------------------|
-| CMake not found    | 이미지에 cmake 미설치 | dnf install cmake 포함된 이미지 사용 |
-| Connection refused | Docker 미실행     | Docker Desktop 실행            |
-| Permission denied  | Docker 권한 문제   | Docker Desktop 재시작 또는 권한 설정  |
+서버 프로그램 실행 시 호스트에서 접근하려면 포트포워딩 필수.
 
-  ---
-4. 요약 체크리스트
+1. `Settings` → `Build, Execution, Deployment` → `CMake`
+2. `Debug-Docker-Linux` 프로필 선택
+3. `Container Settings` 필드에 입력:
+   ```
+   -p 0.0.0.0:9999:9999
+   ```
 
-- Docker Desktop 실행 중
-- 개발용 이미지 빌드 (quekka-dev:latest)
-- 이미지에 gcc, g++, cmake, make, gdb 설치됨
-- CLion Docker 연결 성공
-- Toolchain에서 이미지 선택 후 경로 자동 감지 확인
+설정 후 호스트에서 `nc localhost 9999`로 접근 가능.
 
+---
+
+## 3. 실행
+
+1. 상단 Configuration에서 `quekka` 선택
+2. Build Profile을 `Debug-Docker-Linux`로 선택
+3. Run 버튼 클릭
+
+---
+
+## 4. 주의사항
+
+- Container Settings는 개인 설정(`workspace.xml`)에 저장되어 Git 공유 불가
+- 팀원은 각자 Step 4 포트포워딩 설정 필요
+
+---
+
+## 5. 개발 시나리오별 설정
+
+quekka는 서버(Linux)와 클라이언트(크로스 플랫폼)를 모두 포함하는 프로젝트입니다.
+테스트 유형에 따라 다른 네트워크 설정이 필요합니다.
+
+### 시나리오 A: 서버 테스트 (Docker에서 서버 실행, 호스트에서 클라이언트 접속)
+
+**목적**: Docker 컨테이너에서 quekka 서버를 실행하고 호스트에서 접근
+
+**CLion Container Settings**:
+```
+-p 0.0.0.0:9999:9999
+```
+
+**호스트에서 접속**:
+```bash
+nc localhost 9999
+```
+
+### 시나리오 B: 클라이언트 테스트 (Docker에서 클라이언트 테스트, 호스트에서 서버 실행)
+
+**목적**: 호스트에서 서버(또는 nc)를 실행하고 Docker 컨테이너에서 클라이언트 테스트
+
+**CLion Container Settings** (포트포워딩 제거, 호스트 연결 추가):
+```
+--add-host=host.docker.internal:host-gateway
+```
+
+**CLion 환경 변수 설정** (`Run/Debug Configurations` → `Environment variables`):
+```
+QUEKKA_TEST_SERVER=host.docker.internal:9999
+```
+
+**호스트에서 서버 실행**:
+```bash
+nc -lk 9999
+```
+
+### 시나리오 C: Docker Compose 통합 테스트 (권장)
+
+**목적**: 서버와 클라이언트를 모두 Docker 컨테이너에서 실행
+
+**1. 서버 컨테이너 시작**:
+```bash
+docker-compose -f docker-compose.dev.yml --profile server up -d server
+```
+
+**2. CLion Container Settings**:
+```
+--network=quekka_quekka-net
+```
+
+**3. CLion 환경 변수 설정**:
+```
+QUEKKA_TEST_SERVER=quekka-server:9999
+```
+
+**4. 테스트 실행**: CLion에서 통합 테스트 실행
+
+**5. 정리**:
+```bash
+docker-compose -f docker-compose.dev.yml down
+```
+
+---
+
+## 6. CMake Profile 분리 설정 (권장)
+
+테스트 유형별로 별도의 CMake Profile을 만들어 관리합니다.
+
+### Profile 1: Debug-Docker-Server (서버 테스트용)
+
+1. `Settings` → `Build, Execution, Deployment` → `CMake`
+2. `+` 클릭하여 새 Profile 추가
+3. 설정:
+   - Name: `Debug-Docker-Server`
+   - Build type: `Debug`
+   - Toolchain: `Docker-Linux` 선택
+   - Container Settings: `-p 0.0.0.0:9999:9999`
+
+### Profile 2: Debug-Docker-Client (클라이언트 테스트용)
+
+1. `+` 클릭하여 새 Profile 추가
+2. 설정:
+   - Name: `Debug-Docker-Client`
+   - Build type: `Debug`
+   - Toolchain: `Docker-Linux` 선택
+   - Container Settings: `--add-host=host.docker.internal:host-gateway`
+   - Environment: `QUEKKA_TEST_SERVER=host.docker.internal:9999`
+
+### Profile 3: Debug-Docker-Compose (통합 테스트용)
+
+1. `+` 클릭하여 새 Profile 추가
+2. 설정:
+   - Name: `Debug-Docker-Compose`
+   - Build type: `Debug`
+   - Toolchain: `Docker-Linux` 선택
+   - Container Settings: `--network=quekka_quekka-net`
+   - Environment: `QUEKKA_TEST_SERVER=quekka-server:9999`
+
+---
+
+## 7. 빠른 참조
+
+| 테스트 유형 | Container Settings | 환경 변수 |
+|------------|-------------------|----------|
+| 서버 테스트 | `-p 0.0.0.0:9999:9999` | (불필요) |
+| 클라이언트 테스트 | `--add-host=host.docker.internal:host-gateway` | `QUEKKA_TEST_SERVER=host.docker.internal:9999` |
+| Docker Compose | `--network=quekka_quekka-net` | `QUEKKA_TEST_SERVER=quekka-server:9999` |
