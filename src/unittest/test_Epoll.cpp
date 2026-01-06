@@ -1,11 +1,9 @@
 //
 // Created by Claude on 2025. 12. 12.
-// epoll 관련 유닛테스트 (Linux 전용)
+// epoll 관련 유닛테스트
 //
 
 #include <gtest/gtest.h>
-
-#ifdef __linux__
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -15,9 +13,9 @@
 #include <cstring>
 
 extern "C" {
-#include "internal/epoll_handler.h"
-#include "internal/client_manager.h"
-#include "internal/libsocket.h"
+#include "internal/epoll.h"
+#include "internal/client.h"
+#include "internal/socket.h"
 }
 
 // =============================================================================
@@ -163,10 +161,3 @@ TEST(TcpSocketTest, CreateServerSocket) {
 
     close(listen_fd);
 }
-
-#else
-// macOS/Windows에서는 스킵
-TEST(EpollTest, SkippedOnNonLinux) {
-    GTEST_SKIP() << "epoll tests are Linux-only";
-}
-#endif

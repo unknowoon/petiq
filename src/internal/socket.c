@@ -7,10 +7,10 @@
 #include <sys/epoll.h>
 #include <sys/fcntl.h>
 
-#include "internal/libsocket.h"
-#include "internal/client_manager.h"
-#include "internal/epoll_handler.h"
-#include "internal/socket_server.h"
+#include "internal/socket.h"
+#include "internal/client.h"
+#include "internal/epoll.h"
+#include "internal/server.h"
 
 int socket_init(void) {
 	int server_fd = 0;

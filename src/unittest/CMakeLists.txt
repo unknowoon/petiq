@@ -1,11 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 project(src_unittest)
 
-set(CMAKE_CXX_STANDARD 20)
-
-if(NOT "${PROJECT}")
-    set(PROJECT ${CMAKE_CURRENT_SOURCE_DIR}/../../)
-endif()
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # FetchContent로 GoogleTest 자동 다운로드
 include(FetchContent)
@@ -18,9 +15,6 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
-include_directories(${PROJECT}/src)
-include_directories(${PROJECT}/include)
-
 # 테스트 파일
 set(TEST_FILES
     test_QuekkaMdb.cpp
@@ -32,16 +26,17 @@ set(TEST_FILES
 add_executable(src_unittest test_main.cpp ${TEST_FILES})
 
 target_include_directories(src_unittest PUBLIC
-    ${PROJECT}/include
-    ${PROJECT}/src
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src
 )
 
 target_link_libraries(src_unittest
     gtest
     gtest_main
     pthread
-    quekka_pub
     quekka_config
     quekka_common
     quekka_error
+    quekka_pub
+    quekka_internal
 )

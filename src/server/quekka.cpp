@@ -1,7 +1,7 @@
 #include "quekka/Quekka_log.h"
 #include "internal/comm.h"
-#include "internal/libsocket.h"
-#include "internal/epoll_handler.h"
+#include "internal/socket.h"
+#include "internal/epoll.h"
 #include <getopt.h>
 #include <sys/epoll.h>
 

@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
-#include "internal/libsocket.h"
+#include "internal/socket.h"
 #include "quekka/Quekka_producer.h"
 
 #include <arpa/inet.h>

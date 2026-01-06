@@ -31,17 +31,21 @@ find_package(Threads REQUIRED)
 # =============================================================================
 # 공통 Include 경로
 # =============================================================================
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src
+)
 
 # =============================================================================
 # Common Library (공통 라이브러리 - 로깅)
 # =============================================================================
 add_library(quekka_common STATIC
-    libsrc/quekka/Quekka_log.c
+    src/quekka/Quekka_log.c
 )
 
 target_include_directories(quekka_common PUBLIC
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src
 )
 
 target_link_libraries(quekka_common PUBLIC
@@ -52,11 +56,12 @@ target_link_libraries(quekka_common PUBLIC
 # Quekka Config Library (설정 라이브러리)
 # =============================================================================
 add_library(quekka_config STATIC
-        libsrc/quekka/Quekka_config.c
+    src/quekka/Quekka_config.c
 )
 
 target_include_directories(quekka_config PUBLIC
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src
 )
 
 target_link_libraries(quekka_config PUBLIC
@@ -67,42 +72,59 @@ target_link_libraries(quekka_config PUBLIC
 # Quekka Error Code Library (에러 코드 라이브러리)
 # =============================================================================
 add_library(quekka_error STATIC
-    libsrc/quekka/Quekka_quecode.c
+    src/quekka/Quekka_quecode.c
 )
 
 target_include_directories(quekka_error PUBLIC
     ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/libsrc/quekka
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+# =============================================================================
+# Internal Library (내부 구현)
+# =============================================================================
+add_library(quekka_internal STATIC
+    src/internal/socket.c
+)
+
+target_include_directories(quekka_internal PUBLIC
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src
+)
+
+target_link_libraries(quekka_internal PUBLIC
+    quekka_common
 )
 
 # =============================================================================
 # Quekka Publisher Library (퍼블리셔 클라이언트 라이브러리)
 # =============================================================================
 add_library(quekka_pub STATIC
-    libsrc/quekka/Quekka_producer.c
-    libsrc/internal/libsocket.c
+    src/quekka/Quekka_producer.c
 )
 
 target_include_directories(quekka_pub PUBLIC
     ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/libsrc/quekka
+    ${CMAKE_SOURCE_DIR}/src
 )
 
 target_link_libraries(quekka_pub PUBLIC
     quekka_common
     quekka_config
     quekka_error
+    quekka_internal
 )
 
 # =============================================================================
 # Quekka Subscriber Library (서브스크라이버 클라이언트 라이브러리)
 # =============================================================================
 add_library(quekka_sub STATIC
-    libsrc/quekka/Quekka_sub.c
+    src/quekka/Quekka_sub.c
 )
 
 target_include_directories(quekka_sub PUBLIC
     ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src
 )
 
 target_link_libraries(quekka_sub PUBLIC
@@ -111,77 +133,60 @@ target_link_libraries(quekka_sub PUBLIC
 )
 
 # =============================================================================
-# Server Library (서버 라이브러리 - Linux 전용, epoll 사용)
+# Main Executable (quekka 서버)
 # =============================================================================
-if(UNIX AND NOT APPLE)
-    add_library(quekka_server_lib STATIC
-        libsrc/internal/libsocket.c
-    )
+add_executable(quekka-server
+    src/server/quekka.cpp
+)
 
-    target_include_directories(quekka_server_lib PUBLIC
-        ${CMAKE_SOURCE_DIR}/include
-    )
+target_include_directories(quekka-server PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src
+)
 
-    target_link_libraries(quekka_server_lib PUBLIC
-        quekka_common
-    )
-endif()
+target_link_libraries(quekka-server PRIVATE
+    quekka_common
+    quekka_config
+    quekka_error
+    quekka_internal
+    quekka_pub
+    quekka_sub
+)
 
 # =============================================================================
-# Main Executable (quekka 서버 - Linux 전용, epoll 사용)
+# CLI Executable (quekka-cli)
 # =============================================================================
-if(UNIX AND NOT APPLE)
-    add_executable(quekka
-        src/server/quekka.cpp
-        libsrc/internal/libfile.c
-        libsrc/internal/libsocket.c
-        include/internal/socket_server.h
-        include/internal/libsocket.h
-        include/internal/epoll_handler.h
-        libsrc/internal/libsocket.c
-        include/quekka/Quekka_quecode.h
-        libsrc/quekka/Quekka_quecode.c
-        libsrc/quekka/Quekka_config.c
-    )
+add_executable(quekka-cli
+    src/cli/quekka-cli.cpp
+)
 
-    target_link_libraries(quekka PRIVATE
-        quekka_common
-        quekka_config
-        quekka_pub
-        quekka_sub
-    )
+target_include_directories(quekka-cli PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/src
+)
 
-    # =============================================================================
-    # CLI Executable (quekka-cli)
-    # =============================================================================
-    add_executable(quekka-cli
-        src/cli/quekka-cli.cpp
-        libsrc/internal/libsocket.c
-    )
-
-    target_link_libraries(quekka-cli PRIVATE
-        quekka_common
-    )
-endif()
+target_link_libraries(quekka-cli PRIVATE
+    quekka_common
+    quekka_internal
+)
 
 # =============================================================================
 # 설치 규칙
 # =============================================================================
-install(TARGETS quekka_common quekka_config quekka_error quekka_pub quekka_sub
+install(TARGETS
+    quekka_common
+    quekka_config
+    quekka_error
+    quekka_sub
+    quekka_internal
+    quekka_pub
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
 )
 
-if(UNIX AND NOT APPLE)
-    install(TARGETS quekka quekka-cli
-        RUNTIME DESTINATION bin
-    )
-
-    install(TARGETS quekka_server_lib
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-    )
-endif()
+install(TARGETS quekka-server quekka-cli
+    RUNTIME DESTINATION bin
+)
 
 install(DIRECTORY include/quekka DESTINATION include)
 
@@ -201,10 +206,5 @@ message(STATUS "  Build type:        ${CMAKE_BUILD_TYPE}")
 message(STATUS "  C compiler:        ${CMAKE_C_COMPILER}")
 message(STATUS "  CXX compiler:      ${CMAKE_CXX_COMPILER}")
 message(STATUS "  Output directory:  ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-if(UNIX AND NOT APPLE)
-    message(STATUS "  Server build:      Enabled (Linux)")
-else()
-    message(STATUS "  Server build:      Disabled (non-Linux)")
-endif()
 message(STATUS "====================================")
 message(STATUS "")
