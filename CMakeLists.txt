@@ -84,7 +84,7 @@ target_include_directories(quekka_error PUBLIC
 # Internal Library (내부 구현)
 # =============================================================================
 add_library(quekka_internal STATIC
-    src/internal/socket.c
+        src/internal/libsocket.c
 )
 
 target_include_directories(quekka_internal PUBLIC
@@ -137,6 +137,7 @@ target_link_libraries(quekka_sub PUBLIC
 # =============================================================================
 add_executable(quekka-server
     src/server/quekka.cpp
+        include/quekka/Quekka_message.h
 )
 
 target_include_directories(quekka-server PRIVATE

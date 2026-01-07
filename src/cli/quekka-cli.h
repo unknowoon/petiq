@@ -6,7 +6,7 @@
 #define QUEKKA_QUEKKA_CLI_H
 
 #include "internal/comm.h"
-#include "internal/socket.h"
-#include "internal/epoll.h"
+#include "internal/libsocket.h"
+#include "internal/libepoll.h"
 
 #endif //QUEKKA_QUEKKA_CLI_H

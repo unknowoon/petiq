@@ -7,9 +7,9 @@
 #include <sys/epoll.h>
 #include <sys/fcntl.h>
 
-#include "internal/socket.h"
+#include "internal/libsocket.h"
 #include "internal/client.h"
-#include "internal/epoll.h"
+#include "internal/libepoll.h"
 #include "internal/server.h"
 
 int socket_init(void) {

@@ -6,11 +6,12 @@
 #include <sys/socket.h>
 #include <stdlib.h>
 #include <sys/time.h>
-
-#include "internal/socket.h"
-#include "quekka/Quekka_producer.h"
-
 #include <arpa/inet.h>
+
+#include "internal/libsocket.h"
+
+#include "quekka/Quekka_message.h"
+#include "quekka/Quekka_producer.h"
 #include "quekka/Quekka_config.h"
 #include "quekka/Quekka_log.h"
 #include "quekka/Quekka_quecode.h"

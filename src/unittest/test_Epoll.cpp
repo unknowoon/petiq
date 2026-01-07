@@ -13,9 +13,9 @@
 #include <cstring>
 
 extern "C" {
-#include "internal/epoll.h"
+#include "internal/libepoll.h"
 #include "internal/client.h"
-#include "internal/socket.h"
+#include "internal/libsocket.h"
 }
 
 // =============================================================================
